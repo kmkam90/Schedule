@@ -1326,6 +1326,51 @@
 
   footer { text-align: center; color: var(--ink-soft); font-size: 11px; padding: 0 0 28px; letter-spacing: 0.04em; }
   footer .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--pantone); vertical-align: middle; margin: 0 6px 1px; }
+
+  /* 동기화 */
+  .sync-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 999px;
+    padding: 7px 14px; font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--ink-soft); cursor: pointer; transition: all .15s;
+  }
+  .sync-btn:hover { background: rgba(255,255,255,0.55); color: var(--ink); }
+  .sync-btn.ok  { color: var(--pantone-deep); border-color: var(--pantone-soft); }
+  .sync-btn.ing { color: var(--pantone); }
+  .sync-btn.err { color: #c87070; }
+
+  .sync-modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(42,37,55,.45); z-index: 500;
+    place-items: center;
+  }
+  .sync-modal-bg.open { display: grid; }
+  .sync-modal {
+    background: rgba(255,255,255,0.92); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(42,37,55,.18);
+    padding: 28px 28px 22px; width: 380px; max-width: 92vw;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .sync-modal h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--ink); }
+  .sync-modal p  { margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.55; }
+  .sync-modal input {
+    border: none; background: var(--pantone-tint); border-radius: 8px;
+    padding: 10px 12px; font-family: inherit; font-size: 13px; outline: none; width: 100%;
+  }
+  .sync-modal input:focus { background: rgba(255,255,255,0.8); }
+  .sync-modal-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .sync-modal-btns button {
+    flex: 1; border: none; border-radius: 8px; padding: 9px 14px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: all .15s;
+  }
+  .sync-modal-btns .btn-push { background: var(--pantone); color: white; }
+  .sync-modal-btns .btn-push:hover { background: var(--pantone-deep); }
+  .sync-modal-btns .btn-pull { background: var(--pantone-tint); color: var(--pantone-deep); }
+  .sync-modal-btns .btn-pull:hover { background: var(--pantone-soft); }
+  .sync-modal-btns .btn-close { background: rgba(0,0,0,0.06); color: var(--ink-soft); }
+  .sync-msg { font-size: 11.5px; font-weight: 600; color: var(--pantone-deep); min-height: 16px; }
 </style>
 </head>
 <body>
@@ -1335,8 +1380,26 @@
     <div class="date-big" id="dateBig">—</div>
     <div class="date-sub" id="dateSub">—</div>
   </div>
+  <button class="sync-btn" id="syncBtn">☁️ <span id="syncLabel">동기화</span></button>
   <div class="time-live" id="timeLive">00:00:00</div>
 </header>
+
+<!-- 동기화 모달 -->
+<div class="sync-modal-bg" id="syncModalBg">
+  <div class="sync-modal">
+    <h3>☁️ GitHub 동기화</h3>
+    <p>GitHub Personal Access Token (gist 권한)을 입력하세요.<br>토큰은 이 브라우저에만 저장되며 파일에 포함되지 않아요.</p>
+    <input type="password" id="syncTokenInput" placeholder="ghp_..." autocomplete="off" />
+    <div class="sync-modal-btns">
+      <button class="btn-push" id="syncPushBtn">⬆️ 저장하기 (Push)</button>
+      <button class="btn-pull" id="syncPullBtn">⬇️ 불러오기 (Pull)</button>
+    </div>
+    <div class="sync-msg" id="syncMsg"></div>
+    <div class="sync-modal-btns">
+      <button class="btn-close" id="syncCloseBtn">닫기</button>
+    </div>
+  </div>
+</div>
 
 <!-- 탭 -->
 <div class="tabs-wrap">
@@ -1607,8 +1670,12 @@
 
   const LS = {
     get(k, fb){ try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; } catch { return fb; } },
-    set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+    set(k, v){
+      localStorage.setItem(k, JSON.stringify(v));
+      if(SYNC_PREFIXES && SYNC_PREFIXES.some(p => k.startsWith(p))) scheduleAutoSync();
+    }
   };
+  const SYNC_PREFIXES = ['sched.', 'goals.', 'yoona.', 'econ3.'];
 
   // ── 시계 & 날짜 표시 ──────────────────────
   function tickTime(){
@@ -3296,6 +3363,119 @@
   });
   document.addEventListener('click', e => {
     if(!pop.contains(e.target) && !e.target.closest('[data-emoji-for]')) closeEmojiPop();
+  });
+
+  // ── GitHub Gist 동기화 ─────────────────────
+  const GIST_ID   = 'a226092e9e1611a717f44e9edc84ed46';
+  const GIST_FILE = 'kam-scheduler-data.json';
+
+  function getSyncToken(){ return LS.get('sync.token', '') || ''; }
+  function setSyncToken(t){ LS.set('sync.token', t); }
+
+  function collectAllData(){
+    const d = {};
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && SYNC_PREFIXES.some(p => k.startsWith(p)))
+        d[k] = localStorage.getItem(k);
+    }
+    return d;
+  }
+
+  function setSyncStatus(state, msg){
+    const btn = document.getElementById('syncBtn');
+    const lbl = document.getElementById('syncLabel');
+    const msgEl = document.getElementById('syncMsg');
+    btn.className = 'sync-btn ' + (state || '');
+    if(state === 'ok')  lbl.textContent = '동기화됨';
+    else if(state === 'ing') lbl.textContent = '동기화 중…';
+    else if(state === 'err') lbl.textContent = '오류';
+    else lbl.textContent = '동기화';
+    if(msgEl && msg) msgEl.textContent = msg;
+  }
+
+  async function pushToGist(){
+    const token = getSyncToken();
+    if(!token){ setSyncStatus('err', '토큰을 입력해주세요'); return false; }
+    setSyncStatus('ing');
+    try {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: { [GIST_FILE]: { content: JSON.stringify(collectAllData()) } } })
+      });
+      if(!res.ok) throw new Error(res.status);
+      const now = new Date();
+      const ts = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      setSyncStatus('ok', `저장 완료 ${ts}`);
+      return true;
+    } catch(e) {
+      setSyncStatus('err', '저장 실패 — 토큰을 확인해주세요');
+      return false;
+    }
+  }
+
+  async function pullFromGist(silent){
+    const token = getSyncToken();
+    if(!token){ if(!silent) setSyncStatus('err', '토큰을 입력해주세요'); return false; }
+    if(!silent) setSyncStatus('ing');
+    try {
+      const res = await fetch(`https://api.github.com/gists/${GIST_ID}`,
+        { headers: { 'Authorization': `token ${token}` } });
+      if(!res.ok) throw new Error(res.status);
+      const gist = await res.json();
+      const content = gist.files?.[GIST_FILE]?.content;
+      if(!content) return false;
+      const data = JSON.parse(content);
+      if(!Object.keys(data).length) return false;
+      Object.entries(data).forEach(([k,v]) => localStorage.setItem(k, v));
+      const now = new Date();
+      const ts = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+      if(!silent) setSyncStatus('ok', `불러오기 완료 ${ts}`);
+      return true;
+    } catch(e) {
+      if(!silent) setSyncStatus('err', '불러오기 실패');
+      return false;
+    }
+  }
+
+  let _syncDebounce = null;
+  function scheduleAutoSync(){
+    clearTimeout(_syncDebounce);
+    _syncDebounce = setTimeout(() => { if(getSyncToken()) pushToGist(); }, 4000);
+  }
+
+  // 모달 UI
+  document.getElementById('syncBtn').addEventListener('click', () => {
+    const bg = document.getElementById('syncModalBg');
+    bg.classList.add('open');
+    document.getElementById('syncTokenInput').value = getSyncToken();
+    document.getElementById('syncMsg').textContent = '';
+  });
+  document.getElementById('syncCloseBtn').addEventListener('click', () => {
+    const t = document.getElementById('syncTokenInput').value.trim();
+    if(t) setSyncToken(t);
+    document.getElementById('syncModalBg').classList.remove('open');
+  });
+  document.getElementById('syncModalBg').addEventListener('click', e => {
+    if(e.target === document.getElementById('syncModalBg'))
+      document.getElementById('syncCloseBtn').click();
+  });
+  document.getElementById('syncPushBtn').addEventListener('click', async () => {
+    const t = document.getElementById('syncTokenInput').value.trim();
+    if(t) setSyncToken(t);
+    await pushToGist();
+  });
+  document.getElementById('syncPullBtn').addEventListener('click', async () => {
+    const t = document.getElementById('syncTokenInput').value.trim();
+    if(t) setSyncToken(t);
+    if(!confirm('현재 데이터를 GitHub에서 불러온 데이터로 덮어쓸까요?')) return;
+    const ok = await pullFromGist();
+    if(ok){
+      ['work','personal','routine'].forEach(render);
+      loadMemo(); loadGratitude(); updateDiaryTitles(); renderCalendar();
+      renderBooks(); renderEcon(); renderGoals(); renderHabits(); renderYoona();
+    }
   });
 
   // ── 초기화 & 자정 자동 갱신 ────────────────
