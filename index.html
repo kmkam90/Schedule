@@ -3223,6 +3223,8 @@
           </div>
         </div>`;
 
+      document.body.appendChild(bg); // 먼저 DOM에 추가해야 getElementById가 작동함
+
       bg.querySelectorAll('input[data-r]').forEach(el => {
         el.addEventListener('keydown', e => {
           if(e.key === 'Tab'){
@@ -3234,7 +3236,7 @@
         });
       });
 
-      const rebuildModal = () => { syncData(); document.getElementById('eteModalBg').remove(); buildModal(); };
+      const rebuildModal = () => { syncData(); bg.remove(); buildModal(); };
       document.getElementById('eteAddRow').addEventListener('click', ()=>{ syncData(); data.push(Array.from({length:data[0].length},()=>'')); rebuildModal(); });
       document.getElementById('eteAddCol').addEventListener('click', ()=>{ syncData(); data.forEach((r,i)=>r.push(i===0?`열${r.length+1}`:'')); rebuildModal(); });
       document.getElementById('eteDelRow').addEventListener('click', ()=>{ if(data.length>2){ syncData(); data.pop(); rebuildModal(); } });
@@ -3249,7 +3251,6 @@
       });
       document.getElementById('eteCancel').addEventListener('click', ()=> bg.remove());
 
-      document.body.appendChild(bg);
       setTimeout(()=>{ bg.querySelector('input[data-r]')?.focus(); }, 60);
     }
     buildModal();
