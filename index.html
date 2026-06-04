@@ -1113,6 +1113,64 @@
   .econ-note-table th { background: var(--pantone-tint); font-weight: 700; color: var(--pantone-deep); }
   .econ-note-table tr:nth-child(even) td { background: rgba(255,255,255,0.3); }
 
+  /* 그리드 피커 */
+  .egp-wrap {
+    position: fixed; z-index: 400;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 14px;
+    box-shadow: 0 6px 24px rgba(42,37,55,.16);
+    padding: 14px 14px 10px;
+  }
+  .egp-grid { display: grid; grid-template-columns: repeat(7, 24px); gap: 4px; margin-bottom: 8px; }
+  .egp-cell {
+    width: 24px; height: 24px;
+    background: rgba(255,255,255,0.4); border: 1.5px solid var(--pantone-soft);
+    border-radius: 4px; cursor: pointer; transition: background .07s, border-color .07s;
+  }
+  .egp-cell.on { background: var(--pantone); border-color: var(--pantone); }
+  .egp-label { font-size: 11.5px; font-weight: 700; color: var(--pantone-deep); text-align: center; }
+
+  /* 시각적 표 편집기 */
+  .ete-modal-bg {
+    position: fixed; inset: 0; background: rgba(42,37,55,.42);
+    z-index: 600; display: grid; place-items: center;
+  }
+  .ete-modal {
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 18px;
+    box-shadow: 0 10px 48px rgba(42,37,55,.2);
+    padding: 22px 24px 18px; min-width: 420px; max-width: 92vw; max-height: 88vh;
+    display: flex; flex-direction: column; gap: 14px; overflow: hidden;
+  }
+  .ete-head {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 14px; font-weight: 700; color: var(--ink);
+  }
+  .ete-toolbar { display: flex; gap: 5px; }
+  .ete-btn {
+    background: var(--pantone-tint); border: none; border-radius: 7px;
+    padding: 5px 11px; font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--pantone-deep); cursor: pointer; transition: background .12s;
+  }
+  .ete-btn:hover { background: var(--pantone-soft); }
+  .ete-btn.primary { background: var(--pantone); color: white; padding: 8px 18px; font-size: 13px; }
+  .ete-btn.primary:hover { background: var(--pantone-deep); }
+  .ete-table-wrap { overflow: auto; flex: 1; border-radius: 8px; border: 1px solid var(--pantone-soft); }
+  .ete-table { border-collapse: collapse; min-width: 100%; }
+  .ete-table th, .ete-table td {
+    border: 1px solid var(--pantone-soft); min-width: 90px; padding: 8px 10px;
+    font-family: inherit; font-size: 13px; outline: none; white-space: nowrap;
+  }
+  .ete-table th { background: var(--pantone-tint); font-weight: 700; color: var(--pantone-deep); }
+  .ete-table td { background: rgba(255,255,255,0.6); }
+  .ete-table th:focus, .ete-table td:focus {
+    background: white; box-shadow: inset 0 0 0 2px var(--pantone); position: relative; z-index: 1;
+  }
+  .ete-actions { display: flex; gap: 8px; align-items: center; }
+  .ete-hint { font-size: 11px; color: var(--ink-soft); margin-left: auto; }
+
   /* 휘갈김 */
   .scratch-input {
     width: 100%;
@@ -3109,17 +3167,129 @@
     return html;
   }
 
-  function insertTableTemplate(ta, rows, cols){
-    const header = '| ' + Array.from({length:cols}, (_,i) => `항목${i+1}`).join(' | ') + ' |';
-    const sep    = '| ' + Array.from({length:cols}, () => '---').join(' | ') + ' |';
-    const row    = '| ' + Array.from({length:cols}, () => '  ').join(' | ') + ' |';
-    const table  = [header, sep, ...Array.from({length:rows}, () => row)].join('\n');
-    const pos = ta.selectionStart;
-    const before = ta.value.slice(0, pos);
-    const after  = ta.value.slice(pos);
-    ta.value = (before ? before + '\n' : '') + table + (after ? '\n' + after : '');
-    ta.focus();
-    ta.selectionStart = ta.selectionEnd = (before ? before.length + 1 : 0) + table.length;
+  function tableDataToMarkdown(data){
+    const header = '| ' + data[0].join(' | ') + ' |';
+    const sep    = '| ' + data[0].map(()=>'---').join(' | ') + ' |';
+    const rows   = data.slice(1).map(r => '| ' + r.join(' | ') + ' |');
+    return [header, sep, ...rows].join('\n');
+  }
+
+  function openTableEditor(rows, cols){
+    document.getElementById('eteModalBg')?.remove();
+    let data = [
+      Array.from({length: cols}, (_,i) => `열${i+1}`),
+      ...Array.from({length: rows}, () => Array.from({length: cols}, ()=>''))
+    ];
+
+    function buildModal(){
+      const bg = document.createElement('div');
+      bg.id = 'eteModalBg'; bg.className = 'ete-modal-bg';
+
+      const syncData = () => {
+        bg.querySelectorAll('[contenteditable][data-r]').forEach(el => {
+          data[+el.dataset.r][+el.dataset.c] = el.textContent.trim();
+        });
+      };
+
+      const theadRow = data[0].map((h,c)=>
+        `<th contenteditable="true" data-r="0" data-c="${c}">${escapeHtml(h)}</th>`).join('');
+      const tbodyRows = data.slice(1).map((row,r)=>
+        `<tr>${row.map((cell,c)=>`<td contenteditable="true" data-r="${r+1}" data-c="${c}">${escapeHtml(cell)}</td>`).join('')}</tr>`
+      ).join('');
+
+      bg.innerHTML = `
+        <div class="ete-modal">
+          <div class="ete-head">
+            <span>📋 표 편집기</span>
+            <div class="ete-toolbar">
+              <button class="ete-btn" id="eteAddRow">＋ 행</button>
+              <button class="ete-btn" id="eteAddCol">＋ 열</button>
+              <button class="ete-btn" id="eteDelRow">− 행</button>
+              <button class="ete-btn" id="eteDelCol">− 열</button>
+            </div>
+          </div>
+          <div class="ete-table-wrap">
+            <table class="ete-table">
+              <thead><tr>${theadRow}</tr></thead>
+              <tbody>${tbodyRows}</tbody>
+            </table>
+          </div>
+          <div class="ete-actions">
+            <button class="ete-btn primary" id="eteConfirm">✓ 노트에 삽입</button>
+            <button class="ete-btn" id="eteCancel">취소</button>
+            <span class="ete-hint">Tab으로 다음 셀 이동</span>
+          </div>
+        </div>`;
+
+      bg.querySelectorAll('[contenteditable]').forEach(el => {
+        el.addEventListener('keydown', e => {
+          if(e.key === 'Tab'){
+            e.preventDefault();
+            const cells = [...bg.querySelectorAll('[contenteditable][data-r]')];
+            const idx = cells.indexOf(el);
+            if(idx < cells.length - 1) cells[idx+1].focus();
+          }
+        });
+      });
+
+      const rebuildModal = () => { document.getElementById('eteModalBg').remove(); buildModal(); };
+      document.getElementById('eteAddRow').addEventListener('click', ()=>{ syncData(); data.push(Array.from({length:data[0].length},()=>'')); rebuildModal(); });
+      document.getElementById('eteAddCol').addEventListener('click', ()=>{ syncData(); data.forEach((r,i)=>r.push(i===0?`열${r.length+1}`:'')); rebuildModal(); });
+      document.getElementById('eteDelRow').addEventListener('click', ()=>{ if(data.length>2){ syncData(); data.pop(); rebuildModal(); } });
+      document.getElementById('eteDelCol').addEventListener('click', ()=>{ if(data[0].length>1){ syncData(); data.forEach(r=>r.pop()); rebuildModal(); } });
+
+      document.getElementById('eteConfirm').addEventListener('click', ()=>{
+        syncData();
+        const md = tableDataToMarkdown(data);
+        const ta = document.getElementById('econNoteInput');
+        if(ta){ ta.value = (ta.value ? ta.value.trimEnd() + '\n' : '') + md; ta.focus(); }
+        bg.remove();
+      });
+      document.getElementById('eteCancel').addEventListener('click', ()=> bg.remove());
+
+      document.body.appendChild(bg);
+      setTimeout(()=>{ bg.querySelector('[contenteditable]')?.focus(); }, 60);
+    }
+    buildModal();
+  }
+
+  function showGridPicker(anchorBtn){
+    document.getElementById('econGridPicker')?.remove();
+    const ROWS = 7, COLS = 7;
+    const wrap = document.createElement('div');
+    wrap.id = 'econGridPicker'; wrap.className = 'egp-wrap';
+
+    const grid = document.createElement('div'); grid.className = 'egp-grid';
+    const label = document.createElement('div'); label.className = 'egp-label'; label.textContent = '크기를 선택하세요';
+
+    for(let r = 1; r <= ROWS; r++){
+      for(let c = 1; c <= COLS; c++){
+        const cell = document.createElement('div'); cell.className = 'egp-cell';
+        cell.dataset.r = r; cell.dataset.c = c;
+        cell.addEventListener('mouseenter', ()=>{
+          grid.querySelectorAll('.egp-cell').forEach(el=>{
+            el.classList.toggle('on', +el.dataset.r<=r && +el.dataset.c<=c);
+          });
+          label.textContent = `${r}행 × ${c}열`;
+        });
+        cell.addEventListener('click', e=>{
+          e.stopPropagation(); wrap.remove(); openTableEditor(r, c);
+        });
+        grid.appendChild(cell);
+      }
+    }
+    wrap.appendChild(grid); wrap.appendChild(label);
+    document.body.appendChild(wrap);
+
+    const rect = anchorBtn.getBoundingClientRect();
+    wrap.style.top  = (rect.bottom + 6 + window.scrollY) + 'px';
+    wrap.style.left = Math.min(rect.left, window.innerWidth - 210) + 'px';
+
+    setTimeout(()=>{
+      document.addEventListener('click', function close(e){
+        if(!wrap.contains(e.target)){ wrap.remove(); document.removeEventListener('click', close); }
+      });
+    }, 50);
   }
 
   function renderEconTopicBar(){
@@ -3157,12 +3327,9 @@
     typeRow.querySelectorAll('[data-etype]').forEach(btn => {
       btn.addEventListener('click', () => { econDraftType = btn.dataset.etype; renderEconAddPanel(); });
     });
-    document.getElementById('econTableBtn').addEventListener('click', () => {
-      const r = window.prompt('행 수 (데이터 행, 헤더 제외):', '3');
-      const c = window.prompt('열 수:', '3');
-      const rows = Math.max(1, parseInt(r)||3), cols = Math.max(1, parseInt(c)||3);
-      const ta = document.getElementById('econNoteInput');
-      if(ta) insertTableTemplate(ta, rows, cols);
+    document.getElementById('econTableBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      showGridPicker(document.getElementById('econTableBtn'));
     });
 
     const actions = document.getElementById('econAddActions');
