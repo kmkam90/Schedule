@@ -1106,6 +1106,7 @@
   .econ-save-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; justify-content: space-between; flex-wrap: wrap; }
   .econ-sync-indicator { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
   .econ-sync-indicator.ok { color: var(--pantone-deep); }
+  #econNoteInput { min-height: 160px; }
   .econ-note-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0; }
   .econ-note-table th, .econ-note-table td {
     border: 1px solid var(--pantone-soft); padding: 6px 10px; text-align: left; line-height: 1.4;
@@ -3318,6 +3319,15 @@
     });
   }
 
+  const ECON_INBOX_ID = 'econ_inbox';
+  function ensureEconInbox(){
+    const topics = loadEconTopics();
+    if(!topics.find(t => t.id === ECON_INBOX_ID)){
+      topics.unshift({ id: ECON_INBOX_ID, title: '미분류' });
+      saveEconTopics(topics);
+    }
+  }
+
   function renderEconAddPanel(){
     const topics = loadEconTopics();
     const typeRow = document.getElementById('econTypeRow');
@@ -3333,35 +3343,25 @@
     });
 
     const actions = document.getElementById('econAddActions');
-    if(topics.length === 0){
-      actions.innerHTML = `<span style="font-size:12px;color:var(--ink-soft);">먼저 ＋ 토픽을 만들어주세요</span>`;
-    } else if(econActiveTopic === 'all'){
-      actions.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <select id="econTopicSel" class="econ-topic-select">
-            ${topics.map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}
-          </select>
-          <button id="econSaveBtn" class="econ-add-btn">저장하기</button>
-        </div>
-        <span class="econ-sync-indicator" id="econSyncInd"></span>`;
-    } else {
-      const t = topics.find(x=>x.id===econActiveTopic);
-      actions.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:12px;color:var(--ink-soft);font-weight:600;">→ ${t ? escapeHtml(t.title) : ''}</span>
-          <button id="econSaveBtn" class="econ-add-btn">저장하기</button>
-        </div>
-        <span class="econ-sync-indicator" id="econSyncInd"></span>`;
-    }
+    const topicLabel = econActiveTopic === 'all' || econActiveTopic === ECON_INBOX_ID
+      ? '미분류에 저장'
+      : '→ ' + (topics.find(t=>t.id===econActiveTopic)?.title || '');
 
-    const saveBtn = document.getElementById('econSaveBtn');
-    if(!saveBtn) return;
+    actions.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:var(--ink-soft);font-weight:600;">${topicLabel}</span>
+        <button id="econSaveBtn" class="econ-add-btn">저장하기</button>
+      </div>
+      <span class="econ-sync-indicator" id="econSyncInd"></span>`;
+
     const doSave = () => {
       const ta = document.getElementById('econNoteInput');
       const body = ta.value.trim();
       if(!body) return;
-      const topicId = econActiveTopic === 'all'
-        ? (document.getElementById('econTopicSel')?.value || topics[0]?.id)
+      ensureEconInbox();
+      const allTopics = loadEconTopics();
+      let topicId = (econActiveTopic === 'all')
+        ? (allTopics.find(t=>t.id===ECON_INBOX_ID)?.id || allTopics[0]?.id)
         : econActiveTopic;
       if(!topicId) return;
       const notes = loadEconNotes();
@@ -3372,11 +3372,9 @@
       if(ind){ ind.textContent = '저장됨 ✓'; ind.className = 'econ-sync-indicator ok'; setTimeout(()=>{ ind.textContent=''; ind.className='econ-sync-indicator'; }, 2000); }
       renderEcon();
     };
-    saveBtn.addEventListener('click', doSave);
+    document.getElementById('econSaveBtn').addEventListener('click', doSave);
     const ta = document.getElementById('econNoteInput');
-    if(ta) {
-      ta.onkeydown = e => { if((e.ctrlKey||e.metaKey) && e.key==='Enter') doSave(); };
-    }
+    if(ta) ta.onkeydown = e => { if((e.ctrlKey||e.metaKey) && e.key==='Enter') doSave(); };
   }
 
   function renderEconNoteArea(){
