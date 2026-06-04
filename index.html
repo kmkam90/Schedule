@@ -1097,6 +1097,21 @@
     font-size: 12px; padding: 3px 7px; border-radius: 5px; transition: background .12s;
   }
   .econ-note-action-btn:hover { background: rgba(255,255,255,0.6); color: var(--pantone-deep); }
+  .econ-table-btn {
+    background: var(--pantone-tint); border: none; border-radius: 8px;
+    padding: 5px 11px; font-family: inherit; font-size: 12px; font-weight: 600;
+    color: var(--pantone-deep); cursor: pointer; transition: background .15s; margin-left: 4px;
+  }
+  .econ-table-btn:hover { background: var(--pantone-soft); }
+  .econ-save-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; justify-content: space-between; flex-wrap: wrap; }
+  .econ-sync-indicator { font-size: 11px; color: var(--ink-soft); font-weight: 600; }
+  .econ-sync-indicator.ok { color: var(--pantone-deep); }
+  .econ-note-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 6px 0; }
+  .econ-note-table th, .econ-note-table td {
+    border: 1px solid var(--pantone-soft); padding: 6px 10px; text-align: left; line-height: 1.4;
+  }
+  .econ-note-table th { background: var(--pantone-tint); font-weight: 700; color: var(--pantone-deep); }
+  .econ-note-table tr:nth-child(even) td { background: rgba(255,255,255,0.3); }
 
   /* 휘갈김 */
   .scratch-input {
@@ -3061,6 +3076,52 @@
 
   function renderEcon(){ renderEconTopicBar(); renderEconAddPanel(); renderEconNoteArea(); }
 
+  function parseEconNoteBody(text){
+    if(!text) return '';
+    const lines = text.split('\n');
+    let html = '', inTable = false, tableRows = [];
+    const flushTable = () => {
+      if(!tableRows.length) return;
+      const dataRows = tableRows.filter(l => !/^\|[\s\-:|]+\|$/.test(l.trim()));
+      if(!dataRows.length){ html += tableRows.map(l => `<div>${escapeHtml(l)}</div>`).join(''); tableRows = []; return; }
+      const header = dataRows[0].split('|').slice(1,-1).map(c=>c.trim());
+      const body = dataRows.slice(1);
+      html += '<table class="econ-note-table"><thead><tr>';
+      header.forEach(h => { html += `<th>${escapeHtml(h)}</th>`; });
+      html += '</tr></thead><tbody>';
+      body.forEach(row => {
+        const cells = row.split('|').slice(1,-1).map(c=>c.trim());
+        html += '<tr>'; cells.forEach(c => { html += `<td>${escapeHtml(c)}</td>`; }); html += '</tr>';
+      });
+      html += '</tbody></table>';
+      tableRows = [];
+    };
+    lines.forEach(line => {
+      const t = line.trim();
+      if(t.startsWith('|') && t.endsWith('|')){
+        inTable = true; tableRows.push(line);
+      } else {
+        if(inTable){ flushTable(); inTable = false; }
+        html += `<div>${escapeHtml(line) || '&nbsp;'}</div>`;
+      }
+    });
+    if(inTable) flushTable();
+    return html;
+  }
+
+  function insertTableTemplate(ta, rows, cols){
+    const header = '| ' + Array.from({length:cols}, (_,i) => `항목${i+1}`).join(' | ') + ' |';
+    const sep    = '| ' + Array.from({length:cols}, () => '---').join(' | ') + ' |';
+    const row    = '| ' + Array.from({length:cols}, () => '  ').join(' | ') + ' |';
+    const table  = [header, sep, ...Array.from({length:rows}, () => row)].join('\n');
+    const pos = ta.selectionStart;
+    const before = ta.value.slice(0, pos);
+    const after  = ta.value.slice(pos);
+    ta.value = (before ? before + '\n' : '') + table + (after ? '\n' + after : '');
+    ta.focus();
+    ta.selectionStart = ta.selectionEnd = (before ? before.length + 1 : 0) + table.length;
+  }
+
   function renderEconTopicBar(){
     const topics = loadEconTopics();
     const notes = loadEconNotes();
@@ -3092,9 +3153,16 @@
     const typeRow = document.getElementById('econTypeRow');
     typeRow.innerHTML = ECON_TYPES.map(t =>
       `<button class="econ-type-btn${econDraftType===t.id?' active':''}" data-etype="${t.id}">${t.emoji} ${t.label}</button>`
-    ).join('');
+    ).join('') + `<button class="econ-table-btn" id="econTableBtn">📋 표 삽입</button>`;
     typeRow.querySelectorAll('[data-etype]').forEach(btn => {
       btn.addEventListener('click', () => { econDraftType = btn.dataset.etype; renderEconAddPanel(); });
+    });
+    document.getElementById('econTableBtn').addEventListener('click', () => {
+      const r = window.prompt('행 수 (데이터 행, 헤더 제외):', '3');
+      const c = window.prompt('열 수:', '3');
+      const rows = Math.max(1, parseInt(r)||3), cols = Math.max(1, parseInt(c)||3);
+      const ta = document.getElementById('econNoteInput');
+      if(ta) insertTableTemplate(ta, rows, cols);
     });
 
     const actions = document.getElementById('econAddActions');
@@ -3102,15 +3170,21 @@
       actions.innerHTML = `<span style="font-size:12px;color:var(--ink-soft);">먼저 ＋ 토픽을 만들어주세요</span>`;
     } else if(econActiveTopic === 'all'){
       actions.innerHTML = `
-        <select id="econTopicSel" class="econ-topic-select">
-          ${topics.map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}
-        </select>
-        <button id="econSaveBtn" class="econ-add-btn">＋ 저장</button>`;
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="econTopicSel" class="econ-topic-select">
+            ${topics.map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}
+          </select>
+          <button id="econSaveBtn" class="econ-add-btn">저장하기</button>
+        </div>
+        <span class="econ-sync-indicator" id="econSyncInd"></span>`;
     } else {
       const t = topics.find(x=>x.id===econActiveTopic);
       actions.innerHTML = `
-        <span style="font-size:12px;color:var(--ink-soft);font-weight:600;">→ ${t ? escapeHtml(t.title) : ''}</span>
-        <button id="econSaveBtn" class="econ-add-btn">＋ 저장</button>`;
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;color:var(--ink-soft);font-weight:600;">→ ${t ? escapeHtml(t.title) : ''}</span>
+          <button id="econSaveBtn" class="econ-add-btn">저장하기</button>
+        </div>
+        <span class="econ-sync-indicator" id="econSyncInd"></span>`;
     }
 
     const saveBtn = document.getElementById('econSaveBtn');
@@ -3127,6 +3201,8 @@
       notes.unshift({ id: Date.now()+'_'+Math.random().toString(36).slice(2,6), topicId, type: econDraftType, body, ts: todayKey() });
       saveEconNotes(notes);
       ta.value = '';
+      const ind = document.getElementById('econSyncInd');
+      if(ind){ ind.textContent = '저장됨 ✓'; ind.className = 'econ-sync-indicator ok'; setTimeout(()=>{ ind.textContent=''; ind.className='econ-sync-indicator'; }, 2000); }
       renderEcon();
     };
     saveBtn.addEventListener('click', doSave);
@@ -3180,7 +3256,7 @@
             const card = document.createElement('div');
             card.className = 'econ-note-card';
             card.innerHTML = `
-              <div class="econ-note-body" id="enb-${note.id}">${escapeHtml(note.body)}</div>
+              <div class="econ-note-body" id="enb-${note.id}">${parseEconNoteBody(note.body)}</div>
               <div class="econ-note-actions">
                 <button class="econ-note-action-btn" data-enote-edit="${note.id}">✏️</button>
                 <button class="econ-note-action-btn" data-enote-del="${note.id}">✕</button>
