@@ -3225,14 +3225,22 @@
 
       document.body.appendChild(bg); // 먼저 DOM에 추가해야 getElementById가 작동함
 
+      const getCell = (r, c) => bg.querySelector(`input[data-r="${r}"][data-c="${c}"]`);
+      const maxR = data.length - 1;
+      const maxC = data[0].length - 1;
+
       bg.querySelectorAll('input[data-r]').forEach(el => {
+        el.addEventListener('focus', () => el.select()); // 포커스 시 전체 선택 → 타이핑으로 즉시 대체
         el.addEventListener('keydown', e => {
-          if(e.key === 'Tab'){
-            e.preventDefault();
-            const inputs = [...bg.querySelectorAll('input[data-r]')];
-            const idx = inputs.indexOf(el);
-            if(idx < inputs.length - 1) inputs[idx+1].focus();
-          }
+          const r = +el.dataset.r, c = +el.dataset.c;
+          let target = null;
+          if(e.key === 'Tab')         { e.preventDefault(); target = getCell(r, c < maxC ? c+1 : 0) || getCell(r < maxR ? r+1 : 0, 0); }
+          else if(e.key === 'ArrowRight' && el.selectionEnd === el.value.length) { e.preventDefault(); target = getCell(r, c < maxC ? c+1 : c); }
+          else if(e.key === 'ArrowLeft'  && el.selectionStart === 0)             { e.preventDefault(); target = getCell(r, c > 0 ? c-1 : c); }
+          else if(e.key === 'ArrowDown')  { e.preventDefault(); target = getCell(r < maxR ? r+1 : r, c); }
+          else if(e.key === 'ArrowUp')    { e.preventDefault(); target = getCell(r > 0 ? r-1 : r, c); }
+          else if(e.key === 'Enter')      { e.preventDefault(); target = getCell(r < maxR ? r+1 : r, c); }
+          if(target) target.focus();
         });
       });
 
