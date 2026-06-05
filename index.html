@@ -1392,6 +1392,88 @@
   .garden-mini-cell[data-habit-mini] { cursor: pointer; }
   .garden-mini-cell[data-habit-mini]:hover { transform: scale(1.4); opacity: 0.85; }
 
+  /* SQL 탭 */
+  .sql-wrap { max-width: 1320px; margin: 0 auto; padding: 0 40px 60px; }
+  .sql-topic-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sql-title-input {
+    flex: 1; border: none; background: var(--pantone-tint); border-radius: 8px;
+    padding: 10px 12px; font-family: inherit; font-size: 13.5px; outline: none; width: 100%;
+    margin-bottom: 8px;
+  }
+  .sql-title-input:focus { background: rgba(255,255,255,0.7); }
+  .sql-query-textarea {
+    width: 100%; min-height: 130px;
+    background: #1e1e2e; color: #cdd6f4;
+    font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+    font-size: 13px; border: none; border-radius: 10px;
+    padding: 14px 16px; outline: none; resize: vertical; line-height: 1.65;
+    tab-size: 2; margin-bottom: 8px; display: block;
+  }
+  .sql-query-textarea::placeholder { color: #585b70; }
+  .sql-memo-textarea {
+    width: 100%; min-height: 60px;
+    background: var(--pantone-tint); border: none; border-radius: 10px;
+    padding: 10px 12px; font-family: inherit; font-size: 13px;
+    outline: none; resize: vertical; line-height: 1.55; display: block;
+    margin-bottom: 8px;
+  }
+  .sql-memo-textarea:focus { background: rgba(255,255,255,0.65); }
+  .sql-add-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .sql-save-btn {
+    background: var(--pantone); color: white; border: none; border-radius: 8px;
+    padding: 9px 18px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .sql-save-btn:hover { background: var(--pantone-deep); }
+  .sql-sync-ind { font-size: 11px; font-weight: 600; color: var(--pantone-deep); }
+
+  .sql-topic-section { margin-bottom: 28px; }
+  .sql-topic-title-row {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .sql-topic-title-text { font-size: 16px; font-weight: 700; color: var(--ink); flex: 1; }
+  .sql-topic-icon-btn {
+    background: none; border: none; color: var(--ink-soft); cursor: pointer;
+    font-size: 12px; padding: 3px 7px; border-radius: 5px; opacity: 0; transition: opacity .15s;
+  }
+  .sql-topic-title-row:hover .sql-topic-icon-btn { opacity: 1; }
+  .sql-topic-icon-btn:hover { background: var(--pantone-tint); color: var(--pantone-deep); }
+
+  .sql-note-card {
+    background: var(--glass-bg); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 10px; transition: background .15s;
+  }
+  .sql-note-card:hover { background: rgba(255,255,255,0.42); }
+  .sql-note-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .sql-note-title { flex: 1; font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; }
+  .sql-note-actions { display: flex; gap: 4px; }
+  .sql-note-btn {
+    background: none; border: none; color: var(--ink-soft); cursor: pointer;
+    font-size: 12px; padding: 3px 8px; border-radius: 5px; font-family: inherit; font-weight: 600;
+    transition: background .12s;
+  }
+  .sql-note-btn:hover { background: var(--pantone-tint); color: var(--pantone-deep); }
+  .sql-code-block {
+    background: #1e1e2e; border-radius: 8px; padding: 14px 16px;
+    overflow-x: auto; white-space: pre; line-height: 1.65;
+    font-family: 'Cascadia Code', 'Fira Code', 'Courier New', monospace;
+    font-size: 12.5px; color: #cdd6f4; margin-bottom: 8px;
+  }
+  .sql-note-memo {
+    font-size: 12.5px; color: var(--ink-soft); line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  /* SQL syntax highlighting */
+  .skw  { color: #cba6f7; font-weight: 700; } /* keyword: SELECT FROM WHERE etc */
+  .skw2 { color: #89b4fa; font-weight: 700; } /* DDL: CREATE TABLE etc */
+  .sfn  { color: #a6e3a1; }                   /* functions: COUNT SUM etc */
+  .sstr { color: #a6e3a1; }                   /* strings */
+  .snum { color: #fab387; }                   /* numbers */
+  .scmt { color: #585b70; font-style: italic; }/* comments */
+
   @media (max-width: 900px) {
     header { flex-wrap: wrap; padding: 24px 20px; }
     .tabs-wrap, .cal-wrap, .achv-wrap, main, .memo-section, .reading-full, .viewing-banner { padding-left: 20px; padding-right: 20px; }
@@ -1487,6 +1569,7 @@
     <button class="tab" data-tab="habits">습관</button>
     <button class="tab" data-tab="reading">독서 기록</button>
     <button class="tab" data-tab="econ">경제 노트</button>
+    <button class="tab" data-tab="sql">SQL</button>
   </div>
 </div>
 
@@ -1707,6 +1790,20 @@
   </div>
 </div>
 
+<!-- ===================== SQL 탭 ===================== -->
+<div class="tab-panel" id="tab-sql">
+  <div class="sql-wrap">
+    <div class="sql-topic-bar" id="sqlTopicBar"></div>
+    <div class="panel compact" style="margin-bottom:20px;">
+      <input type="text" id="sqlNoteTitle" class="sql-title-input" placeholder="제목 (예: GROUP BY + HAVING 차이점)" />
+      <textarea id="sqlQueryInput" class="sql-query-textarea" placeholder="SELECT *&#10;FROM table&#10;WHERE condition;"></textarea>
+      <textarea id="sqlMemoInput" class="sql-memo-textarea" placeholder="설명 / 메모 / 주의점 (선택사항)"></textarea>
+      <div class="sql-add-actions" id="sqlAddActions"></div>
+    </div>
+    <div id="sqlNoteArea"></div>
+  </div>
+</div>
+
 <!-- ===================== 독서 탭 ===================== -->
 <div class="tab-panel" id="tab-reading">
   <div class="reading-full">
@@ -1750,7 +1847,7 @@
       if(SYNC_PREFIXES && SYNC_PREFIXES.some(p => k.startsWith(p))) scheduleAutoSync();
     }
   };
-  const SYNC_PREFIXES = ['sched.', 'goals.', 'yoona.', 'econ3.'];
+  const SYNC_PREFIXES = ['sched.', 'goals.', 'yoona.', 'econ3.', 'sql.'];
 
   // ── 시계 & 날짜 표시 ──────────────────────
   function tickTime(){
@@ -3527,6 +3624,206 @@
     });
   }
 
+  // ── SQL 쿼리북 ────────────────────────────
+  const SQL_DEFAULT_TOPICS = ['SELECT/FROM/WHERE','JOIN','집계함수','서브쿼리','DDL/DML','인덱스','기타'];
+
+  function loadSqlTopics(){ return LS.get('sql.topics', []); }
+  function saveSqlTopics(l){ LS.set('sql.topics', l); }
+  function loadSqlNotes(){ return LS.get('sql.notes', []); }
+  function saveSqlNotes(l){ LS.set('sql.notes', l); }
+
+  let sqlActiveTopic = 'all';
+
+  function ensureSqlTopics(){
+    if(loadSqlTopics().length === 0){
+      saveSqlTopics(SQL_DEFAULT_TOPICS.map((t,i) => ({ id: 'sqlt_'+i, title: t })));
+    }
+  }
+
+  function highlightSQL(code){
+    const e = escapeHtml(code);
+    return e
+      .replace(/--[^\n]*/g, m=>`<span class="scmt">${m}</span>`)
+      .replace(/('(?:[^'\\]|\\.)*')/g, m=>`<span class="sstr">${m}</span>`)
+      .replace(/\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|CROSS|FULL|ON|GROUP\s+BY|ORDER\s+BY|HAVING|LIMIT|OFFSET|AS|AND|OR|NOT|IN|EXISTS|BETWEEN|LIKE|IS|NULL|UNION|ALL|DISTINCT|CASE|WHEN|THEN|ELSE|END|WITH|PARTITION\s+BY|OVER|INTO)\b/gi,
+        m=>`<span class="skw">${m}</span>`)
+      .replace(/\b(CREATE|TABLE|DROP|ALTER|ADD|COLUMN|INDEX|PRIMARY|KEY|FOREIGN|REFERENCES|CONSTRAINT|DEFAULT|INSERT|UPDATE|DELETE|SET|TRUNCATE|VIEW|DATABASE|SCHEMA|VARCHAR|INT|INTEGER|BIGINT|DECIMAL|FLOAT|DOUBLE|DATE|DATETIME|TIMESTAMP|BOOLEAN|TEXT|CHAR|SERIAL)\b/gi,
+        m=>`<span class="skw2">${m}</span>`)
+      .replace(/\b(COUNT|SUM|AVG|MAX|MIN|COALESCE|NULLIF|IFNULL|ISNULL|CONCAT|SUBSTRING|SUBSTR|TRIM|UPPER|LOWER|LENGTH|ROUND|FLOOR|CEIL|CEILING|NOW|CURDATE|GETDATE|DATE_FORMAT|DATEDIFF|ROW_NUMBER|RANK|DENSE_RANK|LAG|LEAD|FIRST_VALUE|LAST_VALUE|NVL|TO_CHAR|TO_DATE|CAST|CONVERT)\b/gi,
+        m=>`<span class="sfn">${m}</span>`)
+      .replace(/\b(\d+(?:\.\d+)?)\b/g, m=>`<span class="snum">${m}</span>`);
+  }
+
+  function renderSQL(){ ensureSqlTopics(); renderSqlTopicBar(); renderSqlAddPanel(); renderSqlNoteArea(); }
+
+  function renderSqlTopicBar(){
+    const topics = loadSqlTopics();
+    const notes = loadSqlNotes();
+    const bar = document.getElementById('sqlTopicBar');
+    let html = `<button class="econ-topic-pill${sqlActiveTopic==='all'?' active':''}" data-spill="all">전체<span class="econ-pill-count">${notes.length}</span></button>`;
+    topics.forEach(t => {
+      const c = notes.filter(n=>n.topicId===t.id).length;
+      html += `<button class="econ-topic-pill${sqlActiveTopic===t.id?' active':''}" data-spill="${t.id}">${escapeHtml(t.title)}<span class="econ-pill-count">${c}</span></button>`;
+    });
+    html += `<button class="econ-new-topic-btn" id="sqlNewTopicBtn">＋ 토픽</button>`;
+    bar.innerHTML = html;
+    bar.querySelectorAll('[data-spill]').forEach(btn => {
+      btn.addEventListener('click', ()=>{ sqlActiveTopic = btn.dataset.spill; renderSQL(); });
+    });
+    document.getElementById('sqlNewTopicBtn').addEventListener('click', ()=>{
+      const title = window.prompt('새 토픽 이름:');
+      if(!title||!title.trim()) return;
+      const list = loadSqlTopics();
+      list.push({ id: 'sqlt_'+Date.now(), title: title.trim() });
+      saveSqlTopics(list); renderSQL();
+    });
+  }
+
+  function renderSqlAddPanel(){
+    const topics = loadSqlTopics();
+    const actions = document.getElementById('sqlAddActions');
+    const topicLabel = sqlActiveTopic === 'all'
+      ? `<select id="sqlTopicSel" class="econ-topic-select">${topics.map(t=>`<option value="${t.id}">${escapeHtml(t.title)}</option>`).join('')}</select>`
+      : `<span style="font-size:12px;color:var(--ink-soft);font-weight:600;">→ ${escapeHtml(topics.find(t=>t.id===sqlActiveTopic)?.title||'')}</span>`;
+    actions.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        ${topicLabel}
+        <button class="sql-save-btn" id="sqlSaveBtn">저장하기</button>
+      </div>
+      <span class="sql-sync-ind" id="sqlSyncInd"></span>`;
+
+    document.getElementById('sqlSaveBtn').addEventListener('click', ()=>{
+      const title = document.getElementById('sqlNoteTitle').value.trim();
+      const query = document.getElementById('sqlQueryInput').value.trim();
+      const memo  = document.getElementById('sqlMemoInput').value.trim();
+      if(!query && !title) return;
+      const topicId = sqlActiveTopic === 'all'
+        ? (document.getElementById('sqlTopicSel')?.value || topics[0]?.id)
+        : sqlActiveTopic;
+      if(!topicId) return;
+      const notes = loadSqlNotes();
+      notes.unshift({ id: Date.now()+'_'+Math.random().toString(36).slice(2,6), topicId, title, query, memo, ts: todayKey() });
+      saveSqlNotes(notes);
+      document.getElementById('sqlNoteTitle').value = '';
+      document.getElementById('sqlQueryInput').value = '';
+      document.getElementById('sqlMemoInput').value = '';
+      const ind = document.getElementById('sqlSyncInd');
+      if(ind){ ind.textContent = '저장됨 ✓'; setTimeout(()=>ind.textContent='', 2000); }
+      renderSQL();
+    });
+
+    // SQL textarea에서 Tab → 공백 2개
+    const qta = document.getElementById('sqlQueryInput');
+    if(qta) qta.onkeydown = e => {
+      if(e.key === 'Tab'){
+        e.preventDefault();
+        const s = qta.selectionStart, en = qta.selectionEnd;
+        qta.value = qta.value.slice(0,s) + '  ' + qta.value.slice(en);
+        qta.selectionStart = qta.selectionEnd = s + 2;
+      }
+    };
+  }
+
+  function renderSqlNoteArea(){
+    const root = document.getElementById('sqlNoteArea');
+    const topics = loadSqlTopics();
+    const allNotes = loadSqlNotes();
+    root.innerHTML = '';
+    if(!topics.length){ root.innerHTML = '<div style="text-align:center;padding:40px;color:var(--ink-soft);opacity:.7;">토픽을 선택하고 노트를 추가해보세요</div>'; return; }
+
+    const topicsToShow = sqlActiveTopic === 'all' ? topics : topics.filter(t=>t.id===sqlActiveTopic);
+    topicsToShow.forEach(topic => {
+      const notes = allNotes.filter(n=>n.topicId===topic.id);
+      if(sqlActiveTopic==='all' && !notes.length) return;
+      const section = document.createElement('div'); section.className = 'sql-topic-section';
+      const titleRow = document.createElement('div'); titleRow.className = 'sql-topic-title-row';
+      titleRow.innerHTML = `
+        <span class="sql-topic-title-text">${escapeHtml(topic.title)}</span>
+        <button class="sql-topic-icon-btn" data-srename="${topic.id}">✏️ 이름</button>
+        <button class="sql-topic-icon-btn" data-sdelete="${topic.id}" style="color:#c87070;">✕ 삭제</button>`;
+      section.appendChild(titleRow);
+
+      if(!notes.length){
+        const emp = document.createElement('div');
+        emp.style.cssText = 'color:var(--ink-soft);font-size:12.5px;padding:6px 0 10px;opacity:.6;';
+        emp.textContent = '아직 노트가 없어요.';
+        section.appendChild(emp);
+      } else {
+        notes.forEach(note => {
+          const card = document.createElement('div'); card.className = 'sql-note-card';
+          card.innerHTML = `
+            <div class="sql-note-head">
+              <span class="sql-note-title">${escapeHtml(note.title || '(제목 없음)')}</span>
+              <div class="sql-note-actions">
+                <button class="sql-note-btn" data-sedit="${note.id}">✏️ 수정</button>
+                <button class="sql-note-btn" data-sdel="${note.id}" style="color:#c87070;">✕</button>
+              </div>
+            </div>
+            ${note.query ? `<div class="sql-code-block" id="sqb-${note.id}">${highlightSQL(note.query)}</div>` : ''}
+            ${note.memo  ? `<div class="sql-note-memo">${escapeHtml(note.memo)}</div>` : ''}`;
+          section.appendChild(card);
+        });
+      }
+      root.appendChild(section);
+    });
+
+    root.querySelectorAll('[data-srename]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.srename, list = loadSqlTopics(), t = list.find(x=>x.id===id);
+        const n = window.prompt('새 이름:', t?.title);
+        if(!n||!n.trim()) return;
+        t.title = n.trim(); saveSqlTopics(list); renderSQL();
+      });
+    });
+    root.querySelectorAll('[data-sdelete]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.sdelete, list = loadSqlTopics(), t = list.find(x=>x.id===id);
+        const cnt = allNotes.filter(n=>n.topicId===id).length;
+        if(!confirm(`"${t?.title}" 삭제?\n노트 ${cnt}개도 함께 삭제됩니다.`)) return;
+        saveSqlTopics(list.filter(x=>x.id!==id));
+        saveSqlNotes(allNotes.filter(n=>n.topicId!==id));
+        if(sqlActiveTopic===id) sqlActiveTopic='all';
+        renderSQL();
+      });
+    });
+    root.querySelectorAll('[data-sedit]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.sedit, notes = loadSqlNotes(), note = notes.find(x=>x.id===id);
+        if(!note) return;
+        const card = btn.closest('.sql-note-card');
+        card.innerHTML = `
+          <input type="text" class="sql-title-input" id="sedit-title-${id}" value="${escapeHtml(note.title||'')}" style="margin-bottom:8px;" />
+          <textarea class="sql-query-textarea" id="sedit-q-${id}" style="margin-bottom:8px;">${escapeHtml(note.query||'')}</textarea>
+          <textarea class="sql-memo-textarea" id="sedit-m-${id}" style="margin-bottom:8px;">${escapeHtml(note.memo||'')}</textarea>
+          <div style="display:flex;gap:6px;">
+            <button class="sql-save-btn" id="sedit-save-${id}">저장</button>
+            <button class="sql-note-btn" id="sedit-cancel-${id}">취소</button>
+          </div>`;
+        const qta = card.querySelector(`#sedit-q-${id}`);
+        if(qta) qta.onkeydown = ev => { if(ev.key==='Tab'){ ev.preventDefault(); const s=qta.selectionStart; qta.value=qta.value.slice(0,s)+'  '+qta.value.slice(qta.selectionEnd); qta.selectionStart=qta.selectionEnd=s+2; } };
+        card.querySelector(`#sedit-save-${id}`).addEventListener('click', ()=>{
+          note.title = card.querySelector(`#sedit-title-${id}`).value.trim();
+          note.query = card.querySelector(`#sedit-q-${id}`).value.trim();
+          note.memo  = card.querySelector(`#sedit-m-${id}`).value.trim();
+          saveSqlNotes(notes); renderSqlNoteArea();
+        });
+        card.querySelector(`#sedit-cancel-${id}`).addEventListener('click', ()=> renderSqlNoteArea());
+      });
+    });
+    root.querySelectorAll('[data-sdel]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.sdel, notes = loadSqlNotes(), n = notes.find(x=>x.id===id);
+        if(n && confirm(`"${n.title||'이 노트'}" 삭제할까요?`)){
+          saveSqlNotes(notes.filter(x=>x.id!==id)); renderSqlNoteArea(); renderSqlTopicBar();
+        }
+      });
+    });
+  }
+
   // ── 탭 전환 ────────────────────────────────
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -3735,6 +4032,7 @@
   loadMemo(); loadGratitude(); updateDiaryTitles(); renderCalendar(); renderAchievement();
   renderBooks();
   renderEcon();
+  renderSQL();
   renderGoals();
   renderHabits();
   renderYoona();
